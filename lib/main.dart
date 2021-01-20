@@ -4,8 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:location/location.dart';
 import 'package:geocoder/geocoder.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart' as DotEnv;
+import 'dart:io';
 
-void main() async {
+Future main() async {
+  await DotEnv.load(fileName: ".env");
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(MyApp());
@@ -54,7 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // TODO: implement initState
     super.initState();
     getSharedPreferences();
-    getFirstLocation();
+    //getFirstLocation();
     getCurrentLocation();
   }
 
@@ -158,7 +161,7 @@ class _MyHomePageState extends State<MyHomePage> {
       lon = locationData.longitude;
     }
     if (lat != null && lon != null) {
-      final key = '&appid=3cf68a2bff2cae6d097517d79d0b9696';
+      final key = '&appid=${DotEnv.env['API_KEY']}';
       String language = '&lang=${Localizations.localeOf(context).languageCode}';
       String baseApi = 'api.openweathermap.org/data/2.5/weather?';
       String coordsQuery = 'lat=$lat&lon=$lon';
@@ -167,8 +170,6 @@ class _MyHomePageState extends State<MyHomePage> {
       final response = await http.get(totalQuery);
       if (response.statusCode == 200) {
         print(response.body);
-      } else {
-
       }
     }
   }
@@ -177,7 +178,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return showDialog(
         context: context,
         barrierDismissible: true,
-        builder: (BuildContext context) {
+        builder: (BuildContext buildContext) {
           return SimpleDialog(
             contentPadding: EdgeInsets.all(20.0),
             title: customText("Ajouter une ville", fontSize: 22.0, color: Colors.teal),
@@ -189,7 +190,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 onSubmitted: (String str) {
                   saveSharedPreferences(str);
-                  Navigator.pop(context);
+                  Navigator.pop(buildContext);
                 },
               )
             ],
@@ -255,7 +256,10 @@ class _MyHomePageState extends State<MyHomePage> {
     if (locationData != null) {
       Coordinates coordinates = Coordinates(locationData.latitude, locationData.longitude);
       final cityName = await Geocoder.local.findAddressesFromCoordinates(coordinates);
-      callApi();
+      setState(() {
+        chosenCity = cityName.first.locality;
+        callApi();
+      });
     }
   }
 
