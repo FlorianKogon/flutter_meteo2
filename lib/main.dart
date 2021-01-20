@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:location/location.dart';
 import 'package:geocoder/geocoder.dart';
+import 'package:http/http.dart' as http;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +43,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   String chosenCity = '';
 
-  Location location;
+  Location location = Location();
   LocationData locationData;
   Stream<LocationData> streamData;
 
@@ -53,8 +54,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // TODO: implement initState
     super.initState();
     getSharedPreferences();
-    location = Location();
-    //getFirstLocation();
+    getFirstLocation();
     getCurrentLocation();
   }
 
@@ -89,6 +89,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     onTap: () {
                       setState(() {
                         chosenCity = null;
+                        coordinatesChosenCity = null;
                         Navigator.pop(context);
                       });
                     },
@@ -131,6 +132,8 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+
+  //Custom Methods
   Text customText(String data, {color: Colors.white, fontSize: 17.0, fontStyle: FontStyle.italic, textAlign: TextAlign.center} ) {
     return Text(
       data,
@@ -141,6 +144,33 @@ class _MyHomePageState extends State<MyHomePage> {
           fontStyle: fontStyle
       ),
     );
+  }
+
+  //Call API
+  callApi() async {
+    double lat;
+    double lon;
+    if (coordinatesChosenCity != null) {
+      lat = coordinatesChosenCity.latitude;
+      lon = coordinatesChosenCity.longitude;
+    } else if (locationData != null) {
+      lat = locationData.latitude;
+      lon = locationData.longitude;
+    }
+    if (lat != null && lon != null) {
+      final key = '&appid=3cf68a2bff2cae6d097517d79d0b9696';
+      String language = '&lang=${Localizations.localeOf(context).languageCode}';
+      String baseApi = 'api.openweathermap.org/data/2.5/weather?';
+      String coordsQuery = 'lat=$lat&lon=$lon';
+      String units = "&units=metrics";
+      String totalQuery = baseApi + coordsQuery + units + language + key;
+      final response = await http.get(totalQuery);
+      if (response.statusCode == 200) {
+        print(response.body);
+      } else {
+
+      }
+    }
   }
 
   Future<Null> addCity() async {
@@ -199,6 +229,8 @@ class _MyHomePageState extends State<MyHomePage> {
   getFirstLocation() async {
     try {
       locationData = await location.getLocation();
+      print(locationData.latitude);
+      print(locationData.longitude);
     } catch (e) {
       print("Error $e");
     }
@@ -223,7 +255,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (locationData != null) {
       Coordinates coordinates = Coordinates(locationData.latitude, locationData.longitude);
       final cityName = await Geocoder.local.findAddressesFromCoordinates(coordinates);
-      print(cityName.first.locality);
+      callApi();
     }
   }
 
@@ -235,6 +267,7 @@ class _MyHomePageState extends State<MyHomePage> {
         Coordinates coordinates = first.coordinates;
         setState(() {
           coordinatesChosenCity = coordinates;
+          callApi();
         });
       }
     }
