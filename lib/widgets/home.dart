@@ -23,29 +23,56 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Container(
           color: Colors.blue,
           child: ListView.builder(
-              itemCount: cities.length,
+              itemCount: cities.length + 2,
               itemBuilder: (context, i) {
-                return ListTile(
-                  title: Text(
-                      cities[i],
-                      style: TextStyle(color: Colors.white)
-                  ),
-                  onTap: () {
-                    setState(() {
-                      chosenCity = cities[i];
-                      Navigator.pop(context);
-                    });
-                  },
-                  trailing: FlatButton(
-                    onPressed: () => {
-                      cities.removeAt(i)
-                    },
-                    child: Icon(
-                      Icons.delete,
-                      color: Colors.white,
+                if (i == 0) {
+                  return DrawerHeader(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        customText("Mes villes", fontSize: 22.0),
+                        RaisedButton(
+                          elevation: 5.0,
+                          onPressed: addCity,
+                          color: Colors.teal,
+                          child: customText('Ajouter une ville'),
+                        ),
+                      ],
                     ),
-                  ),
-                );
+                  );
+                }
+                else if (i == 1) {
+                  return ListTile(
+                    title: customText("Ma ville actuelle"),
+                    onTap: () {
+                      setState(() {
+                        chosenCity = null;
+                        Navigator.pop(context);
+                      });
+                    },
+                  );
+                }
+                else {
+                  String city = cities[i - 2];
+                  return ListTile(
+                    title: customText(city),
+                    onTap: () {
+                      setState(() {
+                        chosenCity = city;
+                        Navigator.pop(context);
+                      });
+                    },
+                    trailing: FlatButton(
+                      onPressed: () => {
+                        cities.removeAt(i)
+                      },
+                      child: Icon(
+                        Icons.delete,
+                        color: Colors.white,
+                      ),
+                    ),
+                  );
+                }
               }),
         ),
       ),
@@ -53,9 +80,49 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Text(chosenCity == null ? "Ville actuelle" : chosenCity
+        child: customText(
+            chosenCity == null ? "Ville actuelle" : chosenCity,
+            color: Colors.black87
         ),
       ),
+    );
+  }
+
+  Text customText(String data, {color: Colors.white, fontSize: 17.0, fontStyle: FontStyle.italic, textAlign: TextAlign.center} ) {
+    return Text(
+      data,
+      textAlign: textAlign,
+      style: TextStyle(
+          color: color,
+          fontSize: fontSize,
+          fontStyle: fontStyle
+      ),
+    );
+  }
+
+  Future<Null> addCity() async {
+    return showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (BuildContext context) {
+          return SimpleDialog(
+            contentPadding: EdgeInsets.all(20.0),
+            title: customText("Ajouter une ville", fontSize: 22.0, color: Colors.teal),
+            children: [
+              TextField(
+                decoration: InputDecoration(
+                    labelText: "Nouvelle ville"
+                ),
+                onSubmitted: (String str) {
+                  Navigator.pop(context);
+                  setState(() {
+                    cities.add(str);
+                  });
+                },
+              )
+            ],
+          );
+        }
     );
   }
 }
