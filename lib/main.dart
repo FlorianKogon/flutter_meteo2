@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:location/location.dart';
+import 'package:geocoder/geocoder.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,8 @@ class _MyHomePageState extends State<MyHomePage> {
   LocationData locationData;
   Stream<LocationData> streamData;
 
+  Coordinates coordinatesChosenCity;
+
   @override
   void initState() {
     // TODO: implement initState
@@ -53,22 +56,6 @@ class _MyHomePageState extends State<MyHomePage> {
     location = Location();
     //getFirstLocation();
     getCurrentLocation();
-  }
-
-
-  getFirstLocation() async {
-    try {
-      locationData = await location.getLocation();
-    } catch (e) {
-      print("Error $e");
-    }
-  }
-
-  getCurrentLocation() {
-    streamData = location.onLocationChanged;
-    streamData.listen((event) {
-      print("Nouvelle position : ${event.longitude} / ${event.latitude}");
-    });
   }
 
   @override
@@ -114,6 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     onTap: () {
                       setState(() {
                         chosenCity = city;
+                        getCoordFromAdress();
                         Navigator.pop(context);
                       });
                     },
@@ -180,6 +168,8 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  //SHARED PREFERENCES
+
   void getSharedPreferences() async {
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
     List<String> list = await sharedPreferences.getStringList(key);
@@ -202,5 +192,51 @@ class _MyHomePageState extends State<MyHomePage> {
     cities.remove(str);
     await sharedPreferences.setStringList(key, cities);
     getSharedPreferences();
+  }
+
+  //LOCATION
+
+  getFirstLocation() async {
+    try {
+      locationData = await location.getLocation();
+    } catch (e) {
+      print("Error $e");
+    }
+  }
+
+  getCurrentLocation() {
+    streamData = location.onLocationChanged;
+    streamData.listen((event) {
+      if ((locationData != null) || ((locationData.latitude != event.latitude) && (locationData.longitude != event.longitude))) {
+        print("Nouvelle position : ${event.longitude} / ${event.latitude}");
+        setState(() {
+          locationData = event;
+          getAdressFromCoord();
+        });
+      }
+    });
+  }
+
+  //GEOCODER
+
+  getAdressFromCoord() async {
+    if (locationData != null) {
+      Coordinates coordinates = Coordinates(locationData.latitude, locationData.longitude);
+      final cityName = await Geocoder.local.findAddressesFromCoordinates(coordinates);
+      print(cityName.first.locality);
+    }
+  }
+
+  getCoordFromAdress() async {
+    if (chosenCity != null) {
+      List<Address> addresses = await Geocoder.local.findAddressesFromQuery(chosenCity);
+      if (addresses.length > 0) {
+        Address first = addresses.first;
+        Coordinates coordinates = first.coordinates;
+        setState(() {
+          coordinatesChosenCity = coordinates;
+        });
+      }
+    }
   }
 }

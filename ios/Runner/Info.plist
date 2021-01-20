@@ -4,8 +4,6 @@
 <dict>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>Utilisation de la position</string>
-    <key>NSLocationAlwaysUsageDescription</key>
-    <string>Utilisation de la position</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>
