@@ -5,7 +5,9 @@ import 'package:location/location.dart';
 import 'package:geocoder/geocoder.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart' as DotEnv;
-import 'dart:io';
+import 'dart:convert';
+import 'widgets/temps.dart';
+import 'widgets/my_flutter_app_icons.dart';
 
 Future main() async {
   await DotEnv.load(fileName: ".env");
@@ -45,12 +47,19 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String> cities = [];
 
   String chosenCity = '';
+  String currentCity = 'Ville actuelle';
 
   Location location = Location();
   LocationData locationData;
   Stream<LocationData> streamData;
 
   Coordinates coordinatesChosenCity;
+
+  Temps temps;
+
+  AssetImage night = AssetImage("assets/n.jpg");
+  AssetImage sun = AssetImage("assets/d1.jpg");
+  AssetImage rain = AssetImage("assets/d2.jpg");
 
   @override
   void initState() {
@@ -88,7 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 }
                 else if (i == 1) {
                   return ListTile(
-                    title: customText("Ma ville actuelle"),
+                    title: customText(currentCity),
                     onTap: () {
                       setState(() {
                         chosenCity = null;
@@ -126,10 +135,36 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(
-        child: customText(
-            chosenCity == null ? "Ville actuelle" : chosenCity,
-            color: Colors.black87
+      body: (temps == null)
+          ? Center(child: Text((chosenCity == null)? currentCity : chosenCity))
+          : Container(
+        width: MediaQuery.of(context).size.width,
+        height: MediaQuery.of(context).size.height,
+        decoration: BoxDecoration(
+            image: DecorationImage(image : getBackground(), fit: BoxFit.cover)
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: <Widget>[
+            customText((chosenCity == null)? currentCity : chosenCity, fontSize: 40.0),
+            customText(temps.description, fontSize: 30.0),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                Image(image: getIcon()),
+                customText("${temps.temp.toInt()} °C", fontSize: 50.0)
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                extra("${temps.tempMin.toInt()} °C", MyFlutterApp.temperature),
+                extra("${temps.tempMax.toInt()} °C", MyFlutterApp.droplet),
+                extra("${temps.pressure.toInt()} hPa", MyFlutterApp.arrow_downward),
+                extra("${temps.humidity.toInt()} %", MyFlutterApp.arrow_upward),
+              ],
+            )
+          ],
         ),
       ),
     );
@@ -149,6 +184,16 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Column extra(String data, IconData iconData) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: <Widget>[
+        Icon(iconData, color: Colors.white, size: 32.0),
+        customText(data),
+      ],
+    );
+  }
+
   //Call API
   callApi() async {
     double lat;
@@ -165,11 +210,15 @@ class _MyHomePageState extends State<MyHomePage> {
       String language = '&lang=${Localizations.localeOf(context).languageCode}';
       String baseApi = 'api.openweathermap.org/data/2.5/weather?';
       String coordsQuery = 'lat=$lat&lon=$lon';
-      String units = "&units=metrics";
-      String totalQuery = baseApi + coordsQuery + units + language + key;
+      String units = "&units=metric";
+      String totalQuery = 'http://' + baseApi + coordsQuery + units + language + key;
       final response = await http.get(totalQuery);
       if (response.statusCode == 200) {
-        print(response.body);
+        Map map = jsonDecode(response.body);
+        setState(() {
+          temps = Temps();
+          temps.fromJSON(map);
+        });
       }
     }
   }
@@ -276,4 +325,22 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
   }
+
+  AssetImage getBackground() {
+    if (temps.icon.contains("n")) {
+      return night;
+    } else {
+      if (temps.icon.contains("01") || temps.icon.contains("02") || temps.icon.contains("03")) {
+        return sun;
+      } else {
+        return rain;
+      }
+    }
+  }
+
+  AssetImage getIcon() {
+    String icon = temps.icon.replaceAll("d", "").replaceAll("n", "");
+    return AssetImage("$icon.png");
+  }
+
 }

@@ -20,7 +20,7 @@ class Temps {
     this.main = mapWeather["main"];
     this.description = mapWeather["description"];
     String monIcone = mapWeather["icon"];
-    this.icon = "assets/${monIcone.replaceAll("d", "").replaceAll("n", "")}.png";
+    this.icon = "assets/${monIcone.replaceAll("d", "").replaceAll("n", "")}";
 
     Map main = map["main"];
     this.temp = main["temp"];
